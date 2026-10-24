@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Lint
+        run: helm lint --strict charts/deckard -f charts/deckard/ci/webhook-values.yaml
+      - name: Render with the CI values
+        run: helm template deckard charts/deckard -f charts/deckard/ci/webhook-values.yaml
+      - name: Render with the Docker Compose example config
+        run: helm template deckard charts/deckard --set-file config=docker-compose/discovery.example.yaml
+      - name: Refuse to render without a config
+        run: |
+          if helm template deckard charts/deckard; then
+            echo "rendered with no config" >&2
+            exit 1
+          fi
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate
+        working-directory: docker-compose
+        run: docker compose config --quiet
