@@ -4,76 +4,25 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-# The discovery config: schedule, sources and destination. Either a YAML map here, or
-# the file itself as a string:
+# Your discovery.yaml: sources, schedule and destination. Required.
 #
 #   helm install deckard ./charts/deckard --set-file config=discovery.yaml
 #
-# It is stored in a Secret, since source fields can hold credentials. Keep credentials
-# out of it with ${NAME} (from secretEnv, envFrom or env below) and {file: secrets/NAME}
-# (from secretFiles below). Reference:
-# https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md
-config: {}
+# Reference: https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md
+config: ""
 
-# Use a Secret you manage instead of `config`. A change to it restarts nothing: roll
-# the deployment yourself.
-existingConfigSecret:
-  name: ""
-  key: discovery.yaml
-
-# Environment variables the config references as ${NAME}, put in a Secret the chart
-# creates. For secrets you manage yourself, use envFrom.
-secretEnv: {}
-#  SPLUNK_HEC_TOKEN: ""
-
-# Extra environment, e.g. ARTHUR_ENGINE_GCP_VERTEX_ALLOW_ADC=true for a source that
-# uses the pod's ambient credentials.
-env: []
-envFrom: []
-#  - secretRef:
-#      name: deckard-env
-
-# Files the config reads as {file: secrets/NAME}, mounted at /etc/deckard/secrets.
-secretFiles:
-  # NAME -> contents, put in a Secret the chart creates:
-  #   --set-file 'secretFiles.files.gcp-key\.json=gcp-key.json'
-  files: {}
-  # Or a Secret you manage; each key becomes a file.
-  existingSecret: ""
+# A Secret you create holding the credentials the config references as ${NAME}. Each key
+# becomes an environment variable:
+#
+#   kubectl create secret generic deckard-credentials \
+#     --from-literal=SPLUNK_HEC_TOKEN=... \
+#     --from-file=GCP_SERVICE_ACCOUNT_KEY=gcp-key.json
+credentialsSecret: ""
 
 serviceAccount:
-  create: true
-  name: ""
-  # For a source using the pod's ambient credentials: IRSA
-  # (eks.amazonaws.com/role-arn) or GKE Workload Identity
-  # (iam.gke.io/gcp-service-account).
+  # For sources that use the pod's own cloud identity instead of a key: IRSA
+  # (eks.amazonaws.com/role-arn) or GKE Workload Identity (iam.gke.io/gcp-service-account).
   annotations: {}
-  automount: false
-
-podAnnotations: {}
-podLabels: {}
-
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 65532
-  runAsGroup: 65532
-  fsGroup: 65532
-  seccompProfile:
-    type: RuntimeDefault
-
-securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
-  capabilities:
-    drop: ["ALL"]
-
-# Longer than the engine's own 15s wait for running scans, so a scan that finishes
-# inside it gets to report its outcome before the pod is killed.
-terminationGracePeriodSeconds: 30
 
 resources:
   requests:
@@ -82,7 +31,5 @@ resources:
   limits:
     memory: 2Gi
 
-nodeSelector:
-  kubernetes.io/arch: amd64
+nodeSelector: {}
 tolerations: []
-affinity: {}

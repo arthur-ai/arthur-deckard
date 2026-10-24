@@ -4,15 +4,11 @@ Watch its scans:
 
   kubectl -n {{ .Release.Namespace }} logs -f deployment/{{ include "deckard.fullname" . }}
 
-Each scan logs "Starting discovery scan of '<source>/<config>'", then a
-discovery_scan_outcome line saying how many agents it sent.
+A config Deckard cannot use stops it at startup with a message naming the problem, so a
+pod in CrashLoopBackOff is almost always the config: read its logs.
+{{- if .Values.credentialsSecret }}
 
-A config Deckard cannot use stops it at startup with a message naming the problem, so
-a pod in CrashLoopBackOff is almost always the config: read its logs.
-{{- if .Values.existingConfigSecret.name }}
-
-The config comes from Secret {{ .Values.existingConfigSecret.name }}. Changing it does
-not restart Deckard:
+Changing Secret {{ .Values.credentialsSecret }} does not restart Deckard:
 
   kubectl -n {{ .Release.Namespace }} rollout restart deployment/{{ include "deckard.fullname" . }}
 {{- end }}

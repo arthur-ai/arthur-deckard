@@ -36,14 +36,17 @@ version and troubleshooting.
 ## Deploy on Kubernetes
 
 ```bash
-helm install deckard ./charts/deckard \
-  --namespace deckard --create-namespace \
+kubectl create namespace deckard
+kubectl -n deckard create secret generic deckard-credentials \
+  --from-literal=SPLUNK_HEC_TOKEN="$SPLUNK_HEC_TOKEN"
+
+helm install deckard ./charts/deckard -n deckard \
   --set-file config=discovery.yaml \
-  --set secretEnv.SPLUNK_HEC_TOKEN="$SPLUNK_HEC_TOKEN"
+  --set credentialsSecret=deckard-credentials
 ```
 
-See the [chart's README](charts/deckard/README.md) for managing secrets and using cloud
-workload identity.
+The config references each key in the Secret as `${NAME}`. See the
+[chart's README](charts/deckard/README.md) for the details and cloud workload identity.
 
 ## Integrations
 
