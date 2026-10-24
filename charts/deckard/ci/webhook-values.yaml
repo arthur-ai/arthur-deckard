@@ -1,0 +1,27 @@
+config:
+  version: 1
+  schedule:
+    interval: 15m
+  sources:
+    - name: vertex-prod
+      vendor: gcp_vertex
+      fields:
+        - {key: project_id, value: my-gcp-project}
+        - {key: service_account_key, value: {file: secrets/gcp-key.json}}
+      configs:
+        - name: agent-engines
+          query: ""
+          query_language: none
+          lookback_window_seconds: 3600
+  destination:
+    type: webhook
+    url: https://hooks.example.com/arthur
+    tls_verification: "off"
+    headers:
+      Authorization: "Bearer ${WEBHOOK_TOKEN}"
+  emit_scan_outcomes: true
+secretEnv:
+  WEBHOOK_TOKEN: test-token
+secretFiles:
+  files:
+    gcp-key.json: '{"type": "service_account"}'

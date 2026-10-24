@@ -1,0 +1,27 @@
+name: arthur-deckard
+services:
+  deckard:
+    image: arthurplatform/ml-engine:${DECKARD_VERSION-latest}
+    platform: linux/amd64
+    user: "65532:65532"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    # Longer than the engine's own 15s wait for running scans, so a scan that finishes
+    # inside it gets to report its outcome before the container is killed.
+    stop_grace_period: "30s"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      ML_ENGINE_DISCOVERY_CONFIG: /etc/deckard/discovery.yaml
+    volumes:
+      - ./discovery.yaml:/etc/deckard/discovery.yaml:ro
+      # Files the config reads with {file: secrets/...}, resolved beside the config.
+      - ./secrets:/etc/deckard/secrets:ro
+    healthcheck:
+      test: wget -qO - http://127.0.0.1:7492/health
+      interval: 30s
+      timeout: 5s
+      retries: 5

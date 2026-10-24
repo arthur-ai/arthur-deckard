@@ -1,0 +1,20 @@
+apiVersion: v2
+name: deckard
+description: Arthur Deckard finds the AI agents running across your cloud, endpoints and network, and reports them to your SIEM or a webhook.
+type: application
+version: 0.1.0
+# The arthurplatform/ml-engine image tag Deckard runs by default.
+appVersion: "2.1.1039"
+home: https://github.com/arthur-ai/arthur-deckard
+sources:
+  - https://github.com/arthur-ai/arthur-deckard
+  - https://github.com/arthur-ai/arthur-engine/tree/main/ml-engine
+keywords:
+  - ai
+  - agents
+  - discovery
+  - security
+  - siem
+maintainers:
+  - name: Arthur
+    url: https://www.arthur.ai

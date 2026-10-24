@@ -1,0 +1,113 @@
+{{- $hasSecretFiles := or .Values.secretFiles.existingSecret .Values.secretFiles.files }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "deckard.fullname" . }}
+  labels:
+    {{- include "deckard.labels" . | nindent 4 }}
+spec:
+  # Always one: a second pod would run every scan again and send every agent twice.
+  # Recreate keeps a rollout from briefly running two.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "deckard.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Restart on a config or secret the chart manages changing.
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "deckard.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "deckard.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: deckard
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          env:
+            - name: ML_ENGINE_DISCOVERY_CONFIG
+              value: /etc/deckard/discovery.yaml
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if or .Values.secretEnv .Values.envFrom }}
+          envFrom:
+            {{- if .Values.secretEnv }}
+            - secretRef:
+                name: {{ include "deckard.fullname" . }}-env
+            {{- end }}
+            {{- with .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          # The health server listens on 127.0.0.1 only, so the kubelet cannot reach it
+          # with an httpGet probe; it is checked from inside the container.
+          livenessProbe:
+            exec:
+              command: ["wget", "-qO", "-", "http://127.0.0.1:7492/health"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/deckard/discovery.yaml
+              subPath: discovery.yaml
+              readOnly: true
+            {{- if $hasSecretFiles }}
+            # Beside the config, so {file: secrets/NAME} resolves here.
+            - name: secret-files
+              mountPath: /etc/deckard/secrets
+              readOnly: true
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ include "deckard.configSecretName" . }}
+            defaultMode: 0440
+            items:
+              - key: {{ include "deckard.configSecretKey" . }}
+                path: discovery.yaml
+        {{- if $hasSecretFiles }}
+        - name: secret-files
+          secret:
+            secretName: {{ include "deckard.secretFilesName" . }}
+            defaultMode: 0440
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
