@@ -45,11 +45,12 @@ spec:
           env:
             - name: ML_ENGINE_DISCOVERY_CONFIG
               value: /etc/deckard/discovery.yaml
-          {{- with .Values.credentialsSecret }}
+          # Optional, so a config that needs no credentials needs no Secret. A ${NAME} the
+          # config uses and the Secret lacks stops Deckard at startup, naming it.
           envFrom:
             - secretRef:
-                name: {{ . }}
-          {{- end }}
+                name: deckard-credentials
+                optional: true
           # The health server listens on 127.0.0.1 only, so the kubelet cannot reach it
           # with an httpGet probe; it is checked from inside the container.
           livenessProbe:

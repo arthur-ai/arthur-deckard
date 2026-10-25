@@ -19,4 +19,3 @@ config: |
     headers:
       Authorization: "Bearer ${WEBHOOK_TOKEN}"
   emit_scan_outcomes: true
-credentialsSecret: deckard-credentials

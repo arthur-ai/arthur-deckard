@@ -40,9 +40,7 @@ kubectl create namespace deckard
 kubectl -n deckard create secret generic deckard-credentials \
   --from-literal=SPLUNK_HEC_TOKEN="$SPLUNK_HEC_TOKEN"
 
-helm install deckard ./charts/deckard -n deckard \
-  --set-file config=discovery.yaml \
-  --set credentialsSecret=deckard-credentials
+helm install deckard ./charts/deckard -n deckard --set-file config=discovery.yaml
 ```
 
 The config references each key in the Secret as `${NAME}`. See the

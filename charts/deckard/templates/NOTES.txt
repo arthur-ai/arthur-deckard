@@ -6,9 +6,7 @@ Watch its scans:
 
 A config Deckard cannot use stops it at startup with a message naming the problem, so a
 pod in CrashLoopBackOff is almost always the config: read its logs.
-{{- if .Values.credentialsSecret }}
 
-Changing Secret {{ .Values.credentialsSecret }} does not restart Deckard:
+Credentials come from Secret deckard-credentials. Changing it does not restart Deckard:
 
   kubectl -n {{ .Release.Namespace }} rollout restart deployment/{{ include "deckard.fullname" . }}
-{{- end }}

@@ -21,7 +21,7 @@ on a schedule and sends what it finds to your SIEM or a webhook.
      token: ${SPLUNK_HEC_TOKEN}
    ```
 
-2. Put those credentials in a Secret, one key per `${NAME}`:
+2. Put those credentials in a Secret named `deckard-credentials`, one key per `${NAME}`:
 
    ```bash
    kubectl create namespace deckard
@@ -33,9 +33,7 @@ on a schedule and sends what it finds to your SIEM or a webhook.
 3. Install:
 
    ```bash
-   helm install deckard ./charts/deckard -n deckard \
-     --set-file config=discovery.yaml \
-     --set credentialsSecret=deckard-credentials
+   helm install deckard ./charts/deckard -n deckard --set-file config=discovery.yaml
 
    kubectl -n deckard logs -f deployment/deckard
    ```
@@ -48,7 +46,6 @@ A config change takes effect on the next `helm upgrade`. A change to the Secret 
 | Value | Default | |
 |---|---|---|
 | `config` | | Your `discovery.yaml`. Required |
-| `credentialsSecret` | | A Secret whose keys become environment variables, for the config's `${NAME}` references |
 | `image.repository` / `image.tag` | `arthurplatform/ml-engine` / the chart's `appVersion` | |
 | `serviceAccount.annotations` | `{}` | For cloud workload identity, below |
 | `resources` | 250m / 512Mi requested, 2Gi memory limit | |
@@ -83,4 +80,6 @@ The opt-in for each source is in the
   account token. Deckard needs no Kubernetes API access and no inbound traffic, so there is
   no Service.
 - **amd64 nodes.** The image has no ARM build.
+- **Credentials come from a Secret named `deckard-credentials`**, which you create. It is
+  optional: a config that needs no credentials needs no Secret.
 - **The config is stored in a Secret**, in case a credential is written into it directly.

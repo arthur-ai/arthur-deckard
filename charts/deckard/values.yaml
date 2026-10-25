@@ -8,16 +8,15 @@ image:
 #
 #   helm install deckard ./charts/deckard --set-file config=discovery.yaml
 #
-# Reference: https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md
-config: ""
-
-# A Secret you create holding the credentials the config references as ${NAME}. Each key
-# becomes an environment variable:
+# Credentials it references as ${NAME} come from a Secret named deckard-credentials, in
+# the release's namespace, which you create. Each key becomes an environment variable:
 #
 #   kubectl create secret generic deckard-credentials \
 #     --from-literal=SPLUNK_HEC_TOKEN=... \
 #     --from-file=GCP_SERVICE_ACCOUNT_KEY=gcp-key.json
-credentialsSecret: ""
+#
+# Reference: https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md
+config: ""
 
 serviceAccount:
   # For sources that use the pod's own cloud identity instead of a key: IRSA
