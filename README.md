@@ -11,29 +11,41 @@ headless, read-only, and runs entirely in your environment.
 
 ## Quickstart
 
-You need Docker and a credential for one [source](#integrations). No SIEM is needed to try it:
-the quickstart sends events to a small receiver that prints them.
+Find the AI agents on your own machine in a couple of minutes, with no accounts or
+credentials. You need Docker and [osquery](https://osquery.io/downloads)
+(`brew install --cask osquery` on a Mac).
 
 ```bash
 git clone https://github.com/arthur-ai/arthur-deckard.git
 cd arthur-deckard/docker-compose
-cp discovery.example.yaml discovery.yaml
-cp .env.template .env
-mkdir -p secrets
-```
-
-Edit the source in `discovery.yaml`. The example scans Vertex AI with a service account key
-at `secrets/gcp-key.json`, and the file has commented examples for other sources. Then
-start Deckard and watch what it finds:
-
-```bash
+./scan-local.sh
 docker compose up -d
 docker compose logs -f webhook-receiver
 ```
 
-Deckard scans immediately, then on the schedule in your config. The receiver prints every
-agent it finds, and one line per scan saying whether it worked. When you're ready, point the
-config's `destination` at Splunk or your own webhook. See
+`scan-local.sh` uses osquery to list what's installed on this machine. It changes nothing
+and doesn't need root. Deckard matches that list against its agent catalog and sends each
+agent it finds to a small receiver that prints them:
+
+```text
+AGENT  Claude Code  (this-machine/inventory)
+{
+  "external_id": "3F2504E0-4F89-11D3-9A0C-0305E82C3301:claude-code",
+  "name": "Claude Code",
+  "runs_on": "endpoint",
+  "creation_source": {
+    "observations": {
+      "install_path": "/Users/you/.local/bin/claude",
+      "classification": "Coding agent",
+      ...
+AGENT  Cursor  (this-machine/inventory)
+...
+SCAN   this-machine/inventory: ok, 7 agents sent
+```
+
+Next, add your cloud, MDM or SIEM sources to
+[`docker-compose/discovery.yaml`](docker-compose/discovery.yaml) (it has commented
+examples), and point its `destination` at Splunk or your own webhook. See
 [`docker-compose/`](docker-compose/README.md) for more.
 
 ## Deploy on Kubernetes
@@ -53,7 +65,7 @@ workload identity.
 | Class | Sources |
 |---|---|
 | Cloud AI platforms | Vertex AI Agent Engine, AWS Bedrock and AgentCore |
-| Endpoints and servers | Jamf Pro, Google Compute Engine, AWS EC2 |
+| Endpoints and servers | Jamf Pro, Google Compute Engine, AWS EC2, this machine (`scan-local.sh`) |
 | Network and gateway logs | AWS CloudWatch Logs, Google Cloud Logging |
 | Security telemetry | Splunk Enterprise, Elastic Security |
 

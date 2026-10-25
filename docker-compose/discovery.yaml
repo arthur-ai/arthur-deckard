@@ -1,34 +1,50 @@
-# Arthur Deckard config. Copy to discovery.yaml and edit.
+# Arthur Deckard config. Works as is: it scans this machine (after ./scan-local.sh) and
+# prints what it finds (docker compose logs -f webhook-receiver).
+#
 # Full reference: https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md
 #
-# Secrets: ${NAME} is replaced from the container's environment (set it in .env), and
-# {file: path} reads a file relative to this one -- secrets/ is mounted beside it.
+# Keep credentials out of this file: ${NAME} is replaced from the container's environment
+# (set it in .env), and {file: path} reads a file relative to this one (secrets/ is mounted
+# beside it). Both .env and secrets/ are gitignored.
 version: 1
 enabled: true
 
 schedule:
   # How often each source/config is scanned: 90s, 15m, 6h, 1d, or seconds.
-  interval: 6h
+  interval: 1h
   # Scan once at startup rather than waiting one interval.
   run_on_start: true
   # Source/config pairs scanned at once.
   max_concurrent_scans: 2
 
 sources:
-  # Vertex AI Agent Engine: lists the agent engines in one project and region.
-  - name: vertex-prod
-    vendor: gcp_vertex
+  # This machine: the scan ./scan-local.sh writes to ./local-scan, mounted here. Deckard
+  # re-reads it every interval; run ./scan-local.sh again to refresh it.
+  - name: this-machine
+    vendor: local
     fields:
-      - {key: project_id, value: my-gcp-project}
-      - {key: location, value: us-central1}
-      # A service account JSON key with permission to list Agent Engines.
-      - {key: service_account_key, value: {file: secrets/gcp-key.json}}
+      - {key: inventory_dir, value: /etc/deckard/local-scan}
     configs:
-      - name: agent-engines
-        query: ""
+      - name: inventory
+        query: ""            # "" uses the agent catalog Deckard ships with
         query_language: none
-        # Not applied for Vertex: every scan lists every engine in the region.
-        lookback_window_seconds: 21600
+        # Publish a scan up to 7 days old; an older one fails, saying how old it is.
+        lookback_window_seconds: 604800
+
+  # Vertex AI Agent Engine: lists the agent engines in one project and region.
+  # - name: vertex-prod
+  #   vendor: gcp_vertex
+  #   fields:
+  #     - {key: project_id, value: my-gcp-project}
+  #     - {key: location, value: us-central1}
+  #     # A service account JSON key with permission to list Agent Engines.
+  #     - {key: service_account_key, value: {file: secrets/gcp-key.json}}
+  #   configs:
+  #     - name: agent-engines
+  #       query: ""
+  #       query_language: none
+  #       # Not applied for Vertex: every scan lists every engine in the region.
+  #       lookback_window_seconds: 21600
 
   # AWS Bedrock: agents, AgentCore runtimes, and the IAM roles CloudTrail shows
   # calling Bedrock models.
@@ -56,7 +72,7 @@ sources:
   #     - {key: include_groups, value: "Engineering,Data Science"}
   #   configs:
   #     - name: all-macs
-  #       query: ""            # "" uses the agent catalog Deckard ships with
+  #       query: ""
   #       query_language: none
   #       # At least the interval: devices that reported only in a gap are missed.
   #       lookback_window_seconds: 21600
