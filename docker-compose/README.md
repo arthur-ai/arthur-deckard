@@ -4,20 +4,40 @@
 cp discovery.example.yaml discovery.yaml
 cp .env.template .env
 mkdir -p secrets
-docker compose up
+docker compose up -d
+docker compose logs -f webhook-receiver
 ```
 
-1. Edit `discovery.yaml`: your sources and your destination. The example is commented, and
-   the [configuration reference](https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md)
+1. Edit the sources in `discovery.yaml`. The example is commented, and the
+   [configuration reference](https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md)
    documents every key.
 2. Put the secrets it references:
    - values it references as `${NAME}` go in `.env`;
    - files it references as `{file: secrets/...}` go in `secrets/`, e.g. a GCP service
      account key at `secrets/gcp-key.json`.
-3. Start it. Each scan logs `Starting discovery scan of '<source>/<config>'`, then a
-   `discovery_scan_outcome` line saying how many agents it sent.
+3. Start it, and watch the receiver's log. Each agent found is printed with its full record:
+
+   ```text
+   AGENT  personal-assistant  (vertex-prod/agent-engines)
+   {
+     "external_id": "projects/123456789012/locations/us-central1/reasoningEngines/111…",
+     "name": "personal-assistant",
+     ...
+   }
+   SCAN   vertex-prod/agent-engines: ok, 1 agent sent
+   ```
+
+   A scan that fails says why, e.g. `FAILED (authentication_failed)`.
 
 `discovery.yaml`, `.env` and `secrets/` are gitignored.
+
+## Sending to your SIEM
+
+The example config sends events to `webhook-receiver`, a small service in this Compose file
+that prints them. To send them to Splunk HEC or your own HTTPS endpoint, replace the config's
+`destination` with one of the commented examples beneath it, put its token in `.env`, and
+`docker compose up -d` again. The receiver keeps running but gets nothing; remove it from
+`docker-compose.yaml` if you like.
 
 ## Notes
 

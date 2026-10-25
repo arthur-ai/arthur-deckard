@@ -20,8 +20,21 @@ services:
       - ./discovery.yaml:/etc/deckard/discovery.yaml:ro
       # Files the config reads with {file: secrets/...}, resolved beside the config.
       - ./secrets:/etc/deckard/secrets:ro
+    depends_on:
+      - webhook-receiver
     healthcheck:
       test: wget -qO - http://127.0.0.1:7492/health
       interval: 30s
       timeout: 5s
       retries: 5
+
+  # Where the example config sends events: prints each one to its log.
+  #   docker compose logs -f webhook-receiver
+  webhook-receiver:
+    image: python:3.13-alpine
+    user: "65532:65532"
+    restart: unless-stopped
+    read_only: true
+    command: ["python", "-u", "/receiver/receiver.py"]
+    volumes:
+      - ./webhook-receiver:/receiver:ro

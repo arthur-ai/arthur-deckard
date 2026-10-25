@@ -11,8 +11,8 @@ headless, read-only, and runs entirely in your environment.
 
 ## Quickstart
 
-You need Docker, a credential for at least one [source](#integrations), and a Splunk HEC
-token or an HTTPS endpoint to send events to.
+You need Docker and a credential for one [source](#integrations). No SIEM is needed to try it:
+the quickstart sends events to a small receiver that prints them.
 
 ```bash
 git clone https://github.com/arthur-ai/arthur-deckard.git
@@ -22,16 +22,19 @@ cp .env.template .env
 mkdir -p secrets
 ```
 
-Edit `discovery.yaml` to name your sources and destination, put the secrets it references in
-`.env` (or as files in `secrets/`), then:
+Edit the source in `discovery.yaml`. The example scans Vertex AI with a service account key
+at `secrets/gcp-key.json`, and the file has commented examples for other sources. Then
+start Deckard and watch what it finds:
 
 ```bash
-docker compose up
+docker compose up -d
+docker compose logs -f webhook-receiver
 ```
 
-Deckard scans immediately, then on the schedule in your config. Each scan logs how many
-agents it sent. See [`docker-compose/`](docker-compose/README.md) for secret files, pinning a
-version and troubleshooting.
+Deckard scans immediately, then on the schedule in your config. The receiver prints every
+agent it finds, and one line per scan saying whether it worked. When you're ready, point the
+config's `destination` at Splunk or your own webhook. See
+[`docker-compose/`](docker-compose/README.md) for more.
 
 ## Deploy on Kubernetes
 
