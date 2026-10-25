@@ -23,9 +23,11 @@ docker compose up -d
 docker compose logs -f webhook-receiver
 ```
 
-`scan-local.sh` uses osquery to list what's installed on this machine. It changes nothing
-and doesn't need root. Deckard matches that list against its agent catalog and sends each
-agent it finds to a small receiver that prints them:
+`scan-local.sh` lists what's installed on this machine using the osquery queries from
+[ai-detection-spec](https://github.com/arthur-ai/ai-detection-spec), our open format and
+catalog for finding AI agents on a machine. It changes nothing and doesn't need root.
+Deckard matches what it finds against that catalog and sends each agent to a small receiver
+that prints them:
 
 ```text
 AGENT  Claude Code  (this-machine/inventory)
