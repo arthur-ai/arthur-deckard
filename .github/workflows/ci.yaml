@@ -21,7 +21,7 @@ jobs:
       - name: Render with the CI values
         run: helm template deckard charts/deckard -f charts/deckard/ci/webhook-values.yaml
       - name: Render with the Docker Compose example config
-        run: helm template deckard charts/deckard --set-file config=docker-compose/discovery.example.yaml
+        run: helm template deckard charts/deckard --set-file config=docker-compose/discovery.yaml
       - name: Refuse to render without a config
         run: |
           if helm template deckard charts/deckard; then

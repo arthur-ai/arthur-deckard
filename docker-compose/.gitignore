@@ -1,4 +1,7 @@
 *.env
 .env
-discovery.yaml
-secrets/
+# Kept in the repo so the folders belong to whoever cloned it, not to Docker (root).
+secrets/*
+!secrets/.gitkeep
+local-scan/*
+!local-scan/.gitkeep
