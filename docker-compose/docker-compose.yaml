@@ -1,7 +1,9 @@
 name: arthur-deckard
 services:
   deckard:
-    image: arthurplatform/ml-engine:${DECKARD_VERSION-latest}
+    image: arthurplatform/ml-engine:${DECKARD_VERSION-latest-dev}
+    # latest-dev moves with every engine dev build; always pull so a cached image isn't run.
+    pull_policy: always
     platform: linux/amd64
     user: "65532:65532"
     restart: unless-stopped

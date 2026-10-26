@@ -4,7 +4,7 @@ description: Arthur Deckard finds the AI agents running across your cloud, endpo
 type: application
 version: 0.1.0
 # The arthurplatform/ml-engine image tag Deckard runs by default.
-appVersion: "2.1.1039"
+appVersion: "latest-dev"
 home: https://github.com/arthur-ai/arthur-deckard
 sources:
   - https://github.com/arthur-ai/arthur-deckard

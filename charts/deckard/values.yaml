@@ -2,7 +2,8 @@ image:
   repository: arthurplatform/ml-engine
   # Defaults to the chart's appVersion.
   tag: ""
-  pullPolicy: IfNotPresent
+  # Always, because the default tag, latest-dev, moves with every engine dev build.
+  pullPolicy: Always
 
 # Your discovery.yaml: sources, schedule and destination. Required.
 #
