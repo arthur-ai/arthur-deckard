@@ -115,5 +115,6 @@ chmod 755 "$out"
 chmod 644 "$out/inventory.json" "$out/machine.json"
 
 echo "Done: $(cut -d' ' -f1,3 "$out/status.txt" 2>/dev/null) -> $out"
-echo "Deckard reads it on its next scan. To start Deckard and watch what it finds:"
-echo "  docker compose up -d && docker compose logs -f webhook-receiver"
+echo "Deckard reads it on its next scan. To start Deckard and see what it finds:"
+echo "  docker compose up -d --wait"
+echo "  then open http://localhost:5601/app/discover (user elastic, password changeme)"

@@ -27,6 +27,7 @@ flowchart LR
     S["Security telemetry"]
   end
   Classes --> D["Deckard<br/>scans on a schedule"]
+  D --> L["Elasticsearch and Elastic Security"]
   D --> H["Splunk HTTP Event Collector"]
   D --> W["Any HTTPS webhook"]
 ```
@@ -66,8 +67,9 @@ You give Deckard one config file, which names three things:
   or nothing for an inventory. Every source is optional; configure only the ones you use.
 - **A schedule:** how often each scan runs. Deckard scans once at startup, then on the
   interval.
-- **One destination:** Splunk HEC or any HTTPS webhook. Every scan sends one event per agent
-  found, plus one event saying how the scan went. See [Events and alerting](events.md).
+- **One destination:** Elasticsearch, Splunk HEC or any HTTPS webhook. Every scan sends one
+  event per agent found, plus one event saying how the scan went. See
+  [Events and alerting](events.md).
 
 `${NAME}` in the config reads an environment variable and `{file: path}` reads a file beside
 it, so no secret has to live in the config itself.

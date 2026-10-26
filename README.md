@@ -6,8 +6,8 @@
 **Find the rogue AI agents running across your organization, and flag them in your SIEM.**
 
 Deckard scans the systems you already run (cloud AI platforms, endpoints, network logs and
-your SIEM) for AI agents, and sends every one it finds to Splunk or any webhook. It's
-headless, read-only, and runs entirely in your environment.
+your SIEM) for AI agents, and sends every one it finds to Elasticsearch, Splunk or any
+webhook. It's headless, read-only, and runs entirely in your environment.
 
 ## Quickstart
 
@@ -19,35 +19,35 @@ credentials. You need Docker and [osquery](https://osquery.io/downloads)
 git clone https://github.com/arthur-ai/arthur-deckard.git
 cd arthur-deckard/docker-compose
 ./scan-local.sh
-docker compose up -d
-docker compose logs -f webhook-receiver
+docker compose up -d --wait
 ```
 
 `scan-local.sh` lists what's installed on this machine using the osquery queries from
 [ai-detection-spec](https://github.com/arthur-ai/ai-detection-spec), our open format and
 catalog for finding AI agents on a machine. It changes nothing and doesn't need root.
-Deckard matches what it finds against that catalog and sends each agent to a small receiver
-that prints them:
+Deckard matches what it finds against that catalog and sends each agent to an
+Elasticsearch running beside it. Open [Kibana](http://localhost:5601/app/discover), log in
+as `elastic` with password `changeme`, and Discover lists them. Or ask Elasticsearch from
+the terminal:
+
+```bash
+curl -s -u elastic:changeme 'localhost:9200/_query?format=txt' \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "FROM logs-arthur.discovery-* | WHERE event_type == \"arthur.discovery.agent\" | KEEP @timestamp, agent.name, source.name | SORT @timestamp DESC"}'
+```
 
 ```text
-AGENT  Claude Code  (this-machine/inventory)
-{
-  "external_id": "3F2504E0-4F89-11D3-9A0C-0305E82C3301:claude-code",
-  "name": "Claude Code",
-  "runs_on": "endpoint",
-  "creation_source": {
-    "observations": {
-      "install_path": "/Users/you/.local/bin/claude",
-      "classification": "Coding agent",
-      ...
-AGENT  Cursor  (this-machine/inventory)
+       @timestamp       |   agent.name   |  source.name
+------------------------+----------------+---------------
+2026-10-26T21:06:33.120Z|Claude Code     |this-machine
+2026-10-26T21:06:33.120Z|Claude Desktop  |this-machine
+2026-10-26T21:06:33.120Z|Cursor          |this-machine
 ...
-SCAN   this-machine/inventory: ok, 7 agents sent
 ```
 
 Next, add your cloud, MDM or SIEM sources to
 [`docker-compose/discovery.yaml`](docker-compose/discovery.yaml) (it has commented
-examples), and point its `destination` at Splunk or your own webhook. See
+examples), and point its `destination` at your own Elasticsearch, Splunk or webhook. See
 [`docker-compose/`](docker-compose/README.md) for more.
 
 ## Deploy on Kubernetes
@@ -72,7 +72,8 @@ The config references each key in the Secret as `${NAME}`. See the
 | Network and gateway logs | AWS CloudWatch Logs, Google Cloud Logging |
 | Security telemetry | Splunk Enterprise, Elastic Security |
 
-**Destinations:** Splunk HTTP Event Collector, or any HTTPS webhook.
+**Destinations:** Elasticsearch and Elastic Security, Splunk HTTP Event Collector, or any
+HTTPS webhook.
 
 Missing one you use? [Open an issue](https://github.com/arthur-ai/arthur-deckard/issues).
 
