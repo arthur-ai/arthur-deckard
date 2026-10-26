@@ -14,8 +14,9 @@
 
 set -euo pipefail
 
-# The collector, pinned to one arthur-engine commit and checked against these hashes.
-COLLECTOR_REF=ca09e04c0e7775edbf51872d9f100477d23d776c
+# The collector, pinned to one arthur-engine commit (release 2.1.1053) and checked against
+# these hashes.
+COLLECTOR_REF=daa8ce4ebd77ea2a1dc8dfd647996f141a14af0d
 COLLECTOR_URL="https://raw.githubusercontent.com/arthur-ai/arthur-engine/${COLLECTOR_REF}/integrations/endpoint-ai-discovery/dist"
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -27,12 +28,12 @@ case "$(uname -s)" in
   Darwin)
     platform=darwin
     collector=collect.sh
-    collector_sha256=26bed01159ab637f3fdb26b1f0ba8baa85bf2a0107c067f9932237de00ea034f
+    collector_sha256=e4bc577e8111e513db4bd164d858d0ce5ccbe18923245994717881c4d66966a3
     ;;
   Linux)
     platform=linux
     collector=collect-linux.sh
-    collector_sha256=8aec7381b9720873ca15cec8344dcbbc6119a970f4f1a69cc8c3f61641ca8701
+    collector_sha256=bb2ee1d3ec208cc22296ba8ed46aec0a3aae322fbf877720abaad3fcf7357c58
     ;;
   *) fail "$(uname -s) is not supported; the collector runs on macOS and Linux" ;;
 esac
