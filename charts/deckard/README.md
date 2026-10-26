@@ -33,10 +33,15 @@ on a schedule and sends what it finds to your SIEM or a webhook.
 3. Install:
 
    ```bash
-   helm install deckard ./charts/deckard -n deckard --set-file config=discovery.yaml
+   helm install deckard oci://ghcr.io/arthur-ai/charts/deckard -n deckard \
+     --set-file config=discovery.yaml
 
    kubectl -n deckard logs -f deployment/deckard
    ```
+
+   That installs the newest [release](https://github.com/arthur-ai/arthur-deckard/releases);
+   add `--version` to pin one. From a clone, `./charts/deckard` in place of the `oci://`
+   reference installs that checkout's version.
 
 A config change takes effect on the next `helm upgrade`. A change to the Secret needs
 `kubectl -n deckard rollout restart deployment/deckard`.
@@ -46,7 +51,7 @@ A config change takes effect on the next `helm upgrade`. A change to the Secret 
 | Value | Default | |
 |---|---|---|
 | `config` | | Your `discovery.yaml`. Required |
-| `image.repository` / `image.tag` | `arthurplatform/ml-engine` / the chart's `appVersion` | |
+| `image.repository` / `image.tag` | `arthurplatform/deckard` / the chart's `appVersion` | The Deckard image of the chart's own version |
 | `serviceAccount.annotations` | `{}` | For cloud workload identity, below |
 | `resources` | 250m / 512Mi requested, 2Gi memory limit | |
 | `nodeSelector` / `tolerations` | | Added to the built-in `kubernetes.io/arch: amd64` |

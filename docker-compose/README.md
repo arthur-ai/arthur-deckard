@@ -70,7 +70,8 @@ scan fails.
   `secrets/` and `local-scan/`. `scan-local.sh` sets that for its own files. For `secrets/`
   on Linux, `chmod` or `chown` accordingly, and keep it unreadable to anyone else.
 - The image is built for `linux/amd64`. On Apple Silicon, Docker runs it under emulation.
-- Set `DECKARD_VERSION` in `.env` to pin an image version instead of tracking `latest-dev`,
-  the engine's newest dev build.
+- This checkout runs the `arthurplatform/deckard` image of its own version. Set
+  `DECKARD_VERSION` in `.env` to run a different
+  [release](https://github.com/arthur-ai/arthur-deckard/releases).
 - `stop_grace_period` is 30s so running scans get Deckard's 15-second drain before the
   container is killed.

@@ -2,9 +2,16 @@ apiVersion: v2
 name: deckard
 description: Arthur Deckard finds the AI agents running across your cloud, endpoints and network, and reports them to your SIEM or a webhook.
 type: application
+# Deckard's version, and the arthurplatform/deckard image tag the chart runs by default.
+# Change it with scripts/bump.sh; merging the change to main releases it.
 version: 0.1.0
-# The arthurplatform/ml-engine image tag Deckard runs by default.
-appVersion: "latest-dev"
+appVersion: "0.1.0"
+annotations:
+  # The Arthur Engine release this version of Deckard is. Releasing Deckard publishes that
+  # release's arthurplatform/ml-engine image, this digest unchanged, as
+  # arthurplatform/deckard:<appVersion>.
+  arthur.ai/engine-version: "2.1.1053"
+  arthur.ai/engine-digest: sha256:e78be8dfd0ae8696cad601a306be5294067862a6fe5b009192e1827d6df529c9
 home: https://github.com/arthur-ai/arthur-deckard
 sources:
   - https://github.com/arthur-ai/arthur-deckard

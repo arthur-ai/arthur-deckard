@@ -57,11 +57,14 @@ kubectl create namespace deckard
 kubectl -n deckard create secret generic deckard-credentials \
   --from-literal=SPLUNK_HEC_TOKEN="$SPLUNK_HEC_TOKEN"
 
-helm install deckard ./charts/deckard -n deckard --set-file config=discovery.yaml
+helm install deckard oci://ghcr.io/arthur-ai/charts/deckard -n deckard --set-file config=discovery.yaml
 ```
 
 The config references each key in the Secret as `${NAME}`. See the
 [chart's README](charts/deckard/README.md) for the details and cloud workload identity.
+
+Each [release](https://github.com/arthur-ai/arthur-deckard/releases) publishes the image
+`arthurplatform/deckard` and this chart at the same version; add `--version` to pin one.
 
 ## Integrations
 
@@ -89,7 +92,8 @@ Deckard is the standalone discovery mode of the
 [Arthur Engine](https://github.com/arthur-ai/arthur-engine), where its code lives. This
 repository holds its deployment and docs. Bug reports and integration requests are welcome
 in [issues](https://github.com/arthur-ai/arthur-deckard/issues); report security issues
-privately, as described in [SECURITY.md](SECURITY.md).
+privately, as described in [SECURITY.md](SECURITY.md). How releases are made:
+[RELEASING.md](RELEASING.md).
 
 ## License
 
