@@ -60,8 +60,10 @@ services:
     ports:
       - 127.0.0.1:9200:9200
     healthcheck:
-      # Up once it answers, even if only to refuse: setup.sh says why a password is wrong.
-      test: curl -s -o /dev/null -w '%{http_code}' http://localhost:9200 | grep -qE '^(200|401)$$'
+      # Up once security answers, even if only to refuse: setup.sh says why a password is
+      # wrong. `/` answers first, while the security index is still being created and
+      # security calls get 503.
+      test: curl -s -o /dev/null -w '%{http_code}' -u "elastic:$$ELASTIC_PASSWORD" http://localhost:9200/_security/_authenticate | grep -qE '^(200|401)$$'
       interval: 5s
       timeout: 5s
       retries: 60
