@@ -61,14 +61,17 @@ sources:
   #       # The CloudTrail window. At least the interval, or callers in the gap are missed.
   #       lookback_window_seconds: 21600
 
-  # Jamf Pro: the agent inventory Arthur's endpoint collector writes to each Mac.
+  # Jamf Pro: the agent inventory Arthur's endpoint collector writes to each Mac. Deploy the
+  # collector through Jamf and create an API client for Deckard first:
+  # https://github.com/arthur-ai/arthur-engine/blob/main/integrations/endpoint-ai-discovery/docs/quickstart.md#macs-managed-by-jamf-pro
   # - name: corp-macs
   #   vendor: jamf_pro
   #   fields:
   #     - {key: base_url, value: https://example.jamfcloud.com}
   #     - {key: client_id, value: "${JAMF_CLIENT_ID}"}
   #     - {key: client_secret, value: "${JAMF_CLIENT_SECRET}"}
-  #     # Optional, comma-separated computer group names.
+  #     # Optional, comma-separated computer group names. The API client's role then also
+  #     # needs to read computer groups.
   #     - {key: include_groups, value: "Engineering,Data Science"}
   #   configs:
   #     - name: all-macs

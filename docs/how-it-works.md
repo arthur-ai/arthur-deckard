@@ -52,9 +52,13 @@ of your AI workloads instead of a sliver of each.
 
 The endpoint integrations read what Arthur's open-source
 [endpoint collector](https://github.com/arthur-ai/arthur-engine/tree/main/integrations/endpoint-ai-discovery)
-writes to each machine, which you deploy through the MDM or cloud tooling you already use. The
-signatures it detects agents by are open source too, so coverage keeps up with new tools as
-they appear.
+writes to each machine. The signatures it detects agents by are open source too, so coverage
+keeps up with new tools as they appear.
+
+You deploy the collector through the MDM or cloud tooling you already use. Its
+[quick start](https://github.com/arthur-ai/arthur-engine/blob/main/integrations/endpoint-ai-discovery/docs/quickstart.md)
+covers Jamf Pro, Compute Engine and EC2. Where it says to add a discovery source in Arthur,
+add the source to Deckard's config instead.
 
 ## Sources, scans and the destination
 
