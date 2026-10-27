@@ -9,6 +9,12 @@ on:
   # Release runs CI before it publishes.
   workflow_call:
 
+# An explicit bash runs as bash -eo pipefail: a step fails when any command in a pipeline
+# does, not only the last.
+defaults:
+  run:
+    shell: bash
+
 permissions:
   contents: read
 
