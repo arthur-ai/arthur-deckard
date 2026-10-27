@@ -54,16 +54,28 @@ jobs:
         working-directory: docker-compose
         run: docker compose config --quiet
 
-  # The quickstart, end to end, on the engine image this version of Deckard publishes:
-  # scan-local.sh runs the pinned collector, Deckard reads its scan, and an agent reaches
-  # Elasticsearch.
+  # The quickstart, end to end, on the engine image this version of Deckard publishes, on
+  # each architecture it is built for: scan-local.sh runs the pinned collector, Deckard
+  # reads its scan, and an agent reaches Elasticsearch.
   smoke:
-    runs-on: ubuntu-latest
+    name: smoke (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            osquery_sha256: 8ae0416d85336a1aea6883920ae9c2751a98538fe0bb624822e92934d3be5592
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            osquery_sha256: ee737e5d2d0c011ed5a15883f930c5df4913365e12b262598d3250ce1340645c
     env:
       GH_TOKEN: ${{ github.token }}
       OSQUERY_VERSION: 5.24.0
-      OSQUERY_SHA256: 8ae0416d85336a1aea6883920ae9c2751a98538fe0bb624822e92934d3be5592
+      OSQUERY_ARCH: ${{ matrix.arch }}
+      OSQUERY_SHA256: ${{ matrix.osquery_sha256 }}
     steps:
       - uses: actions/checkout@v4
       - name: Read the pins
@@ -81,6 +93,18 @@ jobs:
             echo "::error::arthur-engine $ENGINE_VERSION is commit $commit, not the collector's $COLLECTOR_REF"
             exit 1
           fi
+          # The Compose file and the chart run whatever architecture the host is, so the
+          # image must be built for both.
+          platforms="$(docker buildx imagetools inspect "arthurplatform/ml-engine@$ENGINE_DIGEST" \
+            --format '{{json .Manifest}}' \
+            | jq -r '[.manifests[]? | select(.platform.os != "unknown")
+                      | "\(.platform.os)/\(.platform.architecture)"] | join(" ")')"
+          for platform in linux/amd64 linux/arm64; do
+            case " $platforms " in
+              *" $platform "*) ;;
+              *) echo "::error::arthurplatform/ml-engine:$ENGINE_VERSION has no $platform image, only: $platforms"; exit 1 ;;
+            esac
+          done
       - name: Stage the engine image as this version of Deckard
         # The tag the Compose file runs, so it runs this image rather than pulling one.
         run: |
@@ -90,7 +114,7 @@ jobs:
         run: |
           deb="$RUNNER_TEMP/osquery.deb"
           curl -fsSL -o "$deb" \
-            "https://github.com/osquery/osquery/releases/download/$OSQUERY_VERSION/osquery_$OSQUERY_VERSION-1.linux_amd64.deb"
+            "https://github.com/osquery/osquery/releases/download/$OSQUERY_VERSION/osquery_$OSQUERY_VERSION-1.linux_$OSQUERY_ARCH.deb"
           echo "$OSQUERY_SHA256  $deb" | sha256sum -c -
           sudo dpkg -i "$deb"
       - name: Install an agent for the scan to find

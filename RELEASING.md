@@ -7,7 +7,7 @@ chart and Compose setup that run it. Merging a new version to `main` releases it
 
 | | |
 |---|---|
-| Image | `arthurplatform/deckard:<version>` and `:latest`: the engine release's `arthurplatform/ml-engine` image, copied unchanged (same digest, SBOM included) |
+| Image | `arthurplatform/deckard:<version>` and `:latest`: the engine release's `arthurplatform/ml-engine` image, copied unchanged (same digest, every architecture, SBOM included) |
 | Chart | `oci://ghcr.io/arthur-ai/charts/deckard`, version `<version>` |
 | Tag | `v<version>`, with a GitHub release naming the engine release and listing the merged PRs |
 
