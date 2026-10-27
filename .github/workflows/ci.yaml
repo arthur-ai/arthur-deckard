@@ -4,11 +4,28 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The engine bump starts CI on its PR this way, since its pushes start no workflows.
+  workflow_dispatch:
+  # Release runs CI before it publishes.
+  workflow_call:
+
+# An explicit bash runs as bash -eo pipefail: a step fails when any command in a pipeline
+# does, not only the last.
+defaults:
+  run:
+    shell: bash
 
 permissions:
   contents: read
 
 jobs:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every file names the same version
+        run: scripts/versions.sh
+
   helm:
     runs-on: ubuntu-latest
     steps:
@@ -36,3 +53,73 @@ jobs:
       - name: Validate
         working-directory: docker-compose
         run: docker compose config --quiet
+
+  # The quickstart, end to end, on the engine image this version of Deckard publishes:
+  # scan-local.sh runs the pinned collector, Deckard reads its scan, and an agent reaches
+  # Elasticsearch.
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OSQUERY_VERSION: 5.24.0
+      OSQUERY_SHA256: 8ae0416d85336a1aea6883920ae9c2751a98538fe0bb624822e92934d3be5592
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the pins
+        run: scripts/versions.sh >> "$GITHUB_ENV"
+      - name: The pins are the engine release they name
+        run: |
+          digest="$(docker buildx imagetools inspect "arthurplatform/ml-engine:$ENGINE_VERSION" \
+            --format '{{json .Manifest}}' | jq -r .digest)"
+          if [ "$digest" != "$ENGINE_DIGEST" ]; then
+            echo "::error::arthurplatform/ml-engine:$ENGINE_VERSION is $digest, not the pinned $ENGINE_DIGEST"
+            exit 1
+          fi
+          commit="$(gh api "repos/arthur-ai/arthur-engine/commits/$ENGINE_VERSION" --jq .sha)"
+          if [ "$commit" != "$COLLECTOR_REF" ]; then
+            echo "::error::arthur-engine $ENGINE_VERSION is commit $commit, not the collector's $COLLECTOR_REF"
+            exit 1
+          fi
+      - name: Stage the engine image as this version of Deckard
+        # The tag the Compose file runs, so it runs this image rather than pulling one.
+        run: |
+          docker pull "arthurplatform/ml-engine@$ENGINE_DIGEST"
+          docker tag "arthurplatform/ml-engine@$ENGINE_DIGEST" "arthurplatform/deckard:$DECKARD_VERSION"
+      - name: Install osquery
+        run: |
+          deb="$RUNNER_TEMP/osquery.deb"
+          curl -fsSL -o "$deb" \
+            "https://github.com/osquery/osquery/releases/download/$OSQUERY_VERSION/osquery_$OSQUERY_VERSION-1.linux_amd64.deb"
+          echo "$OSQUERY_SHA256  $deb" | sha256sum -c -
+          sudo dpkg -i "$deb"
+      - name: Install an agent for the scan to find
+        # Claude Code's config directory, one of the things the catalog knows it by.
+        run: mkdir -p ~/.claude
+      - name: Scan this machine
+        run: docker-compose/scan-local.sh
+      - name: Start Deckard
+        working-directory: docker-compose
+        # --wait, as the READMEs say to run it: it fails if a one-shot setup service does.
+        run: docker compose up -d --wait
+      - name: Wait for the scan to reach Elasticsearch
+        run: |
+          # Whether any of Deckard's events match a query string; none do before the first write.
+          found() {
+            jq -n --arg q "$1" '{query: {query_string: {query: $q}}}' \
+              | curl -fsS -u elastic:changeme -H 'Content-Type: application/json' -d @- \
+                  'http://127.0.0.1:9200/logs-arthur.discovery-*/_count' \
+              | jq -e '.count > 0' >/dev/null
+          }
+          scan='event_type:"arthur.discovery.scan_outcome" AND source.name:"this-machine" AND source.config_name:"inventory"'
+          for _ in $(seq 60); do
+            found "$scan" && break
+            sleep 5
+          done
+          found "$scan AND outcome.succeeded:true" || { echo "::error::no successful scan"; exit 1; }
+          found 'event_type:"arthur.discovery.agent" AND agent.name:"Claude Code"' \
+            || { echo "::error::the scan did not report Claude Code"; exit 1; }
+      - name: Logs
+        if: always()
+        working-directory: docker-compose
+        run: docker compose logs

@@ -1,0 +1,116 @@
+name: Release
+
+# Merging a new version to main (scripts/bump.sh) releases it, once CI passes on it:
+#
+#   image  arthurplatform/deckard:<version> and :latest, the pinned engine image unchanged
+#   chart  oci://ghcr.io/arthur-ai/charts/deckard, version <version>
+#   tag    v<version>, with a GitHub release
+#
+# A version that is already tagged is skipped, so every other merge to main does nothing.
+on:
+  push:
+    branches: [main]
+  # To finish a release that failed partway.
+  workflow_dispatch:
+
+# An explicit bash runs as bash -eo pipefail: a step fails when any command in a pipeline
+# does, not only the last.
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      deckard: ${{ steps.pins.outputs.DECKARD_VERSION }}
+      engine: ${{ steps.pins.outputs.ENGINE_VERSION }}
+      digest: ${{ steps.pins.outputs.ENGINE_DIGEST }}
+      unreleased: ${{ steps.tag.outputs.unreleased }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pins
+        run: scripts/versions.sh >> "$GITHUB_OUTPUT"
+      - id: tag
+        env:
+          VERSION: ${{ steps.pins.outputs.DECKARD_VERSION }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "v$VERSION is already released"
+            echo "unreleased=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "unreleased=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  ci:
+    needs: version
+    if: needs.version.outputs.unreleased == 'true'
+    uses: ./.github/workflows/ci.yaml
+
+  publish:
+    needs: [version, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      VERSION: ${{ needs.version.outputs.deckard }}
+      ENGINE_VERSION: ${{ needs.version.outputs.engine }}
+      ENGINE_DIGEST: ${{ needs.version.outputs.digest }}
+      IMAGE: arthurplatform/deckard
+      CHARTS: oci://ghcr.io/arthur-ai/charts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_OSS_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_OSS_TOKEN }}
+      - name: Publish the image
+        run: |
+          digest_of() { docker buildx imagetools inspect "$1" --format '{{json .Manifest}}' | jq -r .digest; }
+          # A published version never changes: a rerun may only publish the same image again.
+          if existing="$(digest_of "$IMAGE:$VERSION" 2>/dev/null)" && [ "$existing" != "$ENGINE_DIGEST" ]; then
+            echo "::error::$IMAGE:$VERSION is already $existing, not $ENGINE_DIGEST"
+            exit 1
+          fi
+          # One source and no annotations, so a byte-for-byte copy: the same digest as the
+          # engine release, and its SBOM attestation with it.
+          docker buildx imagetools create --tag "$IMAGE:$VERSION" --tag "$IMAGE:latest" \
+            "arthurplatform/ml-engine@$ENGINE_DIGEST"
+          published="$(digest_of "$IMAGE:$VERSION")"
+          if [ "$published" != "$ENGINE_DIGEST" ]; then
+            echo "::error::published $IMAGE:$VERSION as $published, not $ENGINE_DIGEST"
+            exit 1
+          fi
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Push the chart
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          helm package charts/deckard --destination "$RUNNER_TEMP"
+          echo "$TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          helm push "$RUNNER_TEMP/deckard-$VERSION.tgz" "$CHARTS"
+      - name: Tag and write the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(cat <<EOF
+          - Image: \`$IMAGE:$VERSION\` (\`$ENGINE_DIGEST\`)
+          - Chart: \`helm install deckard $CHARTS/deckard --version $VERSION\`
+          - Arthur Engine: [$ENGINE_VERSION](https://github.com/arthur-ai/arthur-engine/releases/tag/$ENGINE_VERSION)
+          EOF
+          )"
+          # --notes goes above the notes GitHub generates from the merged PRs.
+          gh release create "v$VERSION" "$RUNNER_TEMP/deckard-$VERSION.tgz" \
+            --target "$GITHUB_SHA" --title "Deckard $VERSION" --notes "$notes" --generate-notes

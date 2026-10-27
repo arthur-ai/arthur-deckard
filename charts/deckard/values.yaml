@@ -1,9 +1,8 @@
 image:
-  repository: arthurplatform/ml-engine
-  # Defaults to the chart's appVersion.
+  repository: arthurplatform/deckard
+  # Defaults to the chart's appVersion: the Deckard release this chart is.
   tag: ""
-  # Always, because the default tag, latest-dev, moves with every engine dev build.
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 # Your discovery.yaml: sources, schedule and destination. Required.
 #
