@@ -56,7 +56,7 @@ jobs:
 
   # The quickstart, end to end, on the engine image this version of Deckard publishes:
   # scan-local.sh runs the pinned collector, Deckard reads its scan, and an agent reaches
-  # the receiver.
+  # Elasticsearch.
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -100,18 +100,25 @@ jobs:
         run: docker-compose/scan-local.sh
       - name: Start Deckard
         working-directory: docker-compose
-        run: docker compose up -d
-      - name: Wait for the scan to reach the receiver
-        working-directory: docker-compose
+        # --wait, as the READMEs say to run it: it fails if a one-shot setup service does.
+        run: docker compose up -d --wait
+      - name: Wait for the scan to reach Elasticsearch
         run: |
-          # Not grep -q: stopping at the first match fails the pipeline on the logs' SIGPIPE.
-          received() { docker compose logs --no-log-prefix webhook-receiver | grep "$1" >/dev/null; }
+          # Whether any of Deckard's events match a query string; none do before the first write.
+          found() {
+            jq -n --arg q "$1" '{query: {query_string: {query: $q}}}' \
+              | curl -fsS -u elastic:changeme -H 'Content-Type: application/json' -d @- \
+                  'http://127.0.0.1:9200/logs-arthur.discovery-*/_count' \
+              | jq -e '.count > 0' >/dev/null
+          }
+          scan='event_type:"arthur.discovery.scan_outcome" AND source.name:"this-machine" AND source.config_name:"inventory"'
           for _ in $(seq 60); do
-            received '^SCAN   this-machine/inventory: ' && break
+            found "$scan" && break
             sleep 5
           done
-          received '^SCAN   this-machine/inventory: ok' || { echo "::error::no successful scan"; exit 1; }
-          received '^AGENT  Claude Code ' || { echo "::error::the scan did not report Claude Code"; exit 1; }
+          found "$scan AND outcome.succeeded:true" || { echo "::error::no successful scan"; exit 1; }
+          found 'event_type:"arthur.discovery.agent" AND agent.name:"Claude Code"' \
+            || { echo "::error::the scan did not report Claude Code"; exit 1; }
       - name: Logs
         if: always()
         working-directory: docker-compose

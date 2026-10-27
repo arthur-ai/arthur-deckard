@@ -16,9 +16,9 @@ set -euo pipefail
 
 # The collector, pinned to the commit of the engine release Deckard runs, so it writes the
 # scan that release reads, and checked against these hashes. scripts/bump.sh moves all three.
-COLLECTOR_REF=daa8ce4ebd77ea2a1dc8dfd647996f141a14af0d
-COLLECT_SH_SHA256=e4bc577e8111e513db4bd164d858d0ce5ccbe18923245994717881c4d66966a3
-COLLECT_LINUX_SH_SHA256=bb2ee1d3ec208cc22296ba8ed46aec0a3aae322fbf877720abaad3fcf7357c58
+COLLECTOR_REF=dcfda7c26e52ed8784fc4d1fff79ab1d84288f5d
+COLLECT_SH_SHA256=5dfd696a61963e0b6bb33b73fd83d79114cf2a1b93f683e98c6388f09a956a8f
+COLLECT_LINUX_SH_SHA256=56a1c4d59d3fca0538ea27df0c4a283edba327107c77150314e8c881822eaddc
 COLLECTOR_URL="https://raw.githubusercontent.com/arthur-ai/arthur-engine/${COLLECTOR_REF}/integrations/endpoint-ai-discovery/dist"
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -118,5 +118,6 @@ chmod 755 "$out"
 chmod 644 "$out/inventory.json" "$out/machine.json"
 
 echo "Done: $(cut -d' ' -f1,3 "$out/status.txt" 2>/dev/null) -> $out"
-echo "Deckard reads it on its next scan. To start Deckard and watch what it finds:"
-echo "  docker compose up -d && docker compose logs -f webhook-receiver"
+echo "Deckard reads it on its next scan. To start Deckard and see what it finds:"
+echo "  docker compose up -d --wait"
+echo "  then open http://localhost:5601/app/discover (user elastic, password changeme)"

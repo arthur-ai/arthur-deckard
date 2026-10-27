@@ -2,13 +2,43 @@
 
 ```bash
 ./scan-local.sh
-docker compose up -d
-docker compose logs -f webhook-receiver
+docker compose up -d --wait
 ```
 
+Then open [Kibana](http://localhost:5601/app/discover) and log in as `elastic`, password
+`changeme`.
+
 That's the whole setup: [`discovery.yaml`](discovery.yaml) works as shipped. It scans this
-machine and sends what it finds to `webhook-receiver`, a small service in this Compose file
-that prints every event.
+machine and sends what it finds to Elasticsearch, which runs in this Compose file with
+Kibana beside it. Kibana's Discover opens on Deckard's events: one per agent found, and one
+per scan saying how it went. Both are described in [Events and alerting](../docs/events.md).
+
+To see the agents from the terminal instead:
+
+```bash
+curl -s -u elastic:changeme 'localhost:9200/_query?format=txt' \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "FROM logs-arthur.discovery-* | WHERE event_type == \"arthur.discovery.agent\" | KEEP @timestamp, agent.name, source.name | SORT @timestamp DESC"}'
+```
+
+## What runs
+
+| Service | Does |
+|---|---|
+| `deckard` | Scans on the schedule in `discovery.yaml` |
+| `elasticsearch` | Stores the events, at `localhost:9200`, in the `logs-arthur.discovery-default` data stream |
+| `kibana` | Browses them, at `localhost:5601` |
+| `elastic-setup` | Runs once: creates the `deckard` user Deckard sends as, which can only add documents to `logs-arthur.discovery-*`, and sets Kibana's own password |
+| `kibana-setup` | Runs once: creates the `Deckard` data view Discover opens on |
+
+- Both ports listen on this machine only. Deckard reaches Elasticsearch over Compose's
+  private network, in plain HTTP.
+- One password, `ELASTIC_PASSWORD` in `.env` (`changeme` if unset), is used for `elastic`,
+  for Kibana's user and for `deckard`. Set your own and `docker compose up -d` again.
+- The events are kept in the `elasticsearch-data` volume. `docker compose down -v` deletes
+  them.
+- Elasticsearch and Kibana take about 3.5 GB of memory between them, and a minute or so
+  to start; Deckard waits for both to be set up, and `--wait` waits for all of it.
 
 ## Scanning this machine
 
@@ -47,19 +77,23 @@ Keep their credentials out of the file:
 ## Sending to your SIEM
 
 Replace the `destination` in `discovery.yaml` with one of the commented examples beneath it
-(Splunk HEC or your own HTTPS endpoint), put its token in `.env`, and
-`docker compose up -d` again. The receiver keeps running but gets nothing; remove it from
-`docker-compose.yaml` if you like.
+(your own Elasticsearch or Elastic Security, Splunk HEC, or your own HTTPS endpoint), put
+its credential in `.env`, and `docker compose up -d` again. The Elasticsearch and Kibana
+here keep running but get nothing new; remove them from `docker-compose.yaml` if you like,
+along with Deckard's `depends_on`.
 
 ## Troubleshooting
 
-The receiver prints one line per scan, and a failed one says why:
+Each scan sends an outcome event, which Discover finds with `outcome.succeeded : false`
+when one fails, saying why in `outcome.error`. Deckard logs the same outcome:
+`docker compose logs deckard`.
 
-| The receiver says | Do this |
+| The outcome says | Do this |
 |---|---|
 | `… machine.json does not exist` | Run `./scan-local.sh`. Deckard reads its output; it can't scan the host itself |
 | a scan too old to publish | Run `./scan-local.sh` again |
-| nothing at all | `docker compose logs deckard`: a config Deckard can't use stops it at startup, naming the problem |
+| nothing in Discover at all | `docker compose logs deckard`: a config Deckard can't use stops it at startup, naming the problem, and a destination that refuses events is logged there too |
+| `docker compose up` fails at `elastic-setup` | `docker compose logs elastic-setup` says why |
 
 `scan-local.sh` says so if osquery is missing, and prints the collector's own output if the
 scan fails.
@@ -72,6 +106,7 @@ scan fails.
 - The image is built for `linux/amd64`. On Apple Silicon, Docker runs it under emulation.
 - This checkout runs the `arthurplatform/deckard` image of its own version. Set
   `DECKARD_VERSION` in `.env` to run a different
-  [release](https://github.com/arthur-ai/arthur-deckard/releases).
+  [release](https://github.com/arthur-ai/arthur-deckard/releases), and `ELASTIC_VERSION` to
+  run another Elasticsearch and Kibana.
 - `stop_grace_period` is 30s so running scans get Deckard's 15-second drain before the
   container is killed.

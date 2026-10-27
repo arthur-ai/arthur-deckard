@@ -1,5 +1,5 @@
 # Arthur Deckard config. Works as is: it scans this machine (after ./scan-local.sh) and
-# prints what it finds (docker compose logs -f webhook-receiver).
+# sends what it finds to the Elasticsearch beside it, to browse in Kibana.
 #
 # Full reference: https://github.com/arthur-ai/arthur-engine/blob/main/ml-engine/docs/standalone-discovery.md
 #
@@ -80,15 +80,28 @@ sources:
   #       # At least the interval: devices that reported only in a gap are missed.
   #       lookback_window_seconds: 21600
 
-# Exactly one destination. This one is the webhook-receiver service beside Deckard,
-# which prints every event: docker compose logs -f webhook-receiver
+# Exactly one destination. This one is the Elasticsearch beside Deckard; browse what it
+# receives in Kibana: http://localhost:5601/app/discover (user elastic, password changeme)
 destination:
-  type: webhook
-  url: http://webhook-receiver:8080/events
-  # Plain HTTP is safe only because the receiver is on Compose's private network.
+  type: elasticsearch
+  url: http://elasticsearch:9200
+  # A user that can only add Deckard's events, which docker-compose.yaml creates.
+  username: deckard
+  password: ${ELASTIC_PASSWORD}
+  # Plain HTTP is safe only because Elasticsearch is on Compose's private network.
   allow_insecure_http: true
 
-# When you're ready, send to your SIEM instead. Splunk HTTP Event Collector:
+# When you're ready, send to your SIEM instead. Your own Elasticsearch or Elastic
+# Security, with an API key that has create_doc and auto_configure on
+# logs-arthur.discovery-*:
+# destination:
+#   type: elasticsearch
+#   url: https://my-deployment.es.us-central1.gcp.cloud.es.io
+#   api_key: ${ELASTIC_API_KEY}
+#   # index: logs-arthur.discovery-default   # the default: a data stream, no setup
+#   # pipeline: arthur-to-ecs                # an ingest pipeline to run events through
+
+# Splunk HTTP Event Collector:
 # destination:
 #   type: splunk_hec
 #   url: https://splunk.example.com:8088/services/collector/event
