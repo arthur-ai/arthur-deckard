@@ -103,7 +103,9 @@ scan fails.
 - Deckard runs as UID `65532`, which must be able to read `discovery.yaml` and everything in
   `secrets/` and `local-scan/`. `scan-local.sh` sets that for its own files. For `secrets/`
   on Linux, `chmod` or `chown` accordingly, and keep it unreadable to anyone else.
-- The image is built for `linux/amd64`. On Apple Silicon, Docker runs it under emulation.
+- The image is built for `linux/amd64` and `linux/arm64`, so it runs natively on Apple
+  Silicon and Intel alike. Deckard 0.1.0 was amd64 only; Docker Desktop runs it under
+  emulation.
 - This checkout runs the `arthurplatform/deckard` image of its own version. Set
   `DECKARD_VERSION` in `.env` to run a different
   [release](https://github.com/arthur-ai/arthur-deckard/releases), and `ELASTIC_VERSION` to

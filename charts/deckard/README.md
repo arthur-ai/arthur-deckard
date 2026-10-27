@@ -54,7 +54,7 @@ A config change takes effect on the next `helm upgrade`. A change to the Secret 
 | `image.repository` / `image.tag` | `arthurplatform/deckard` / the chart's `appVersion` | The Deckard image of the chart's own version |
 | `serviceAccount.annotations` | `{}` | For cloud workload identity, below |
 | `resources` | 250m / 512Mi requested, 2Gi memory limit | |
-| `nodeSelector` / `tolerations` | | Added to the built-in `kubernetes.io/arch: amd64` |
+| `nodeSelector` / `tolerations` | `{}` / `[]` | |
 
 ## Cloud credentials without keys
 
@@ -84,7 +84,9 @@ The opt-in for each source is in the
 - **Locked-down pod.** Non-root, read-only root filesystem, no capabilities, no service
   account token. Deckard needs no Kubernetes API access and no inbound traffic, so there is
   no Service.
-- **amd64 nodes.** The image has no ARM build.
+- **amd64 or arm64 nodes.** The image is built for both, so the chart sets no architecture.
+  Deckard 0.1.0 was amd64 only: to run it on a cluster that also has arm64 nodes, set
+  `nodeSelector: {kubernetes.io/arch: amd64}`.
 - **Credentials come from a Secret named `deckard-credentials`**, which you create. It is
   optional: a config that needs no credentials needs no Secret.
 - **The config is stored in a Secret**, in case a credential is written into it directly.
