@@ -1,0 +1,78 @@
+name: Engine bump
+
+# Keeps one PR open that moves Deckard to the newest Arthur Engine release, as the next
+# patch version. Merging it releases that version. Closing it skips that engine release;
+# the next one opens a new PR. A newer engine release replaces the PR's branch, edits and
+# all.
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: Engine release to move to, if not the newest (proposed even if skipped before)
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  # To start CI on the PR.
+  actions: write
+
+concurrency:
+  group: engine-bump
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: engine-bump
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find the engine release
+        id: engine
+        env:
+          REQUESTED: ${{ inputs.engine }}
+        run: |
+          engine="${REQUESTED:-$(gh release view -R arthur-ai/arthur-engine --json tagName --jq .tagName)}"
+          eval "$(scripts/versions.sh)"
+          proposals() {
+            gh pr list --head "$BRANCH" --state all --json title \
+              | jq --arg t " on Arthur Engine $engine" '[.[] | select(.title | endswith($t))] | length'
+          }
+          if [ "$engine" = "$ENGINE_VERSION" ]; then
+            echo "Deckard is on engine $engine already"
+          elif [ -z "$REQUESTED" ] && [ "$(proposals)" != 0 ]; then
+            echo "Engine $engine is proposed already"
+          else
+            echo "from=$ENGINE_VERSION" >> "$GITHUB_OUTPUT"
+            echo "to=$engine" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open or update the PR
+        if: steps.engine.outputs.to
+        env:
+          FROM: ${{ steps.engine.outputs.from }}
+          TO: ${{ steps.engine.outputs.to }}
+        run: |
+          scripts/bump.sh --engine "$TO"
+          eval "$(scripts/versions.sh)"
+          title="Deckard $DECKARD_VERSION on Arthur Engine $TO"
+          body="$(cat <<EOF
+          Moves Deckard to [Arthur Engine $TO](https://github.com/arthur-ai/arthur-engine/releases/tag/$TO): its image digest, and the collector \`scan-local.sh\` runs. [What changed since $FROM](https://github.com/arthur-ai/arthur-engine/compare/$FROM...$TO).
+
+          Merging this releases Deckard $DECKARD_VERSION. Close it to skip this engine release.
+          EOF
+          )"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git commit -am "$title"
+          git push --force origin "$BRANCH"
+          if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq length)" = 0 ]; then
+            gh pr create --head "$BRANCH" --base main --title "$title" --body "$body"
+          else
+            gh pr edit "$BRANCH" --title "$title" --body "$body"
+          fi
+          # A push with this workflow's token starts no workflows, so CI is started by hand.
+          gh workflow run ci.yaml --ref "$BRANCH"

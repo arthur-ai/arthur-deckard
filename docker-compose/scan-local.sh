@@ -14,9 +14,11 @@
 
 set -euo pipefail
 
-# The collector, pinned to one arthur-engine commit (release 2.1.1053) and checked against
-# these hashes.
+# The collector, pinned to the commit of the engine release Deckard runs, so it writes the
+# scan that release reads, and checked against these hashes. scripts/bump.sh moves all three.
 COLLECTOR_REF=daa8ce4ebd77ea2a1dc8dfd647996f141a14af0d
+COLLECT_SH_SHA256=e4bc577e8111e513db4bd164d858d0ce5ccbe18923245994717881c4d66966a3
+COLLECT_LINUX_SH_SHA256=bb2ee1d3ec208cc22296ba8ed46aec0a3aae322fbf877720abaad3fcf7357c58
 COLLECTOR_URL="https://raw.githubusercontent.com/arthur-ai/arthur-engine/${COLLECTOR_REF}/integrations/endpoint-ai-discovery/dist"
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -28,12 +30,12 @@ case "$(uname -s)" in
   Darwin)
     platform=darwin
     collector=collect.sh
-    collector_sha256=e4bc577e8111e513db4bd164d858d0ce5ccbe18923245994717881c4d66966a3
+    collector_sha256=$COLLECT_SH_SHA256
     ;;
   Linux)
     platform=linux
     collector=collect-linux.sh
-    collector_sha256=bb2ee1d3ec208cc22296ba8ed46aec0a3aae322fbf877720abaad3fcf7357c58
+    collector_sha256=$COLLECT_LINUX_SH_SHA256
     ;;
   *) fail "$(uname -s) is not supported; the collector runs on macOS and Linux" ;;
 esac

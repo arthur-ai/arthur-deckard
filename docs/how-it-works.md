@@ -96,8 +96,10 @@ options, and exactly how scans are scheduled.
 ## Deckard and the Arthur Engine
 
 Deckard is an operating mode of the [Arthur Engine](https://github.com/arthur-ai/arthur-engine):
-its ML Engine, running in standalone discovery mode. It runs the `arthurplatform/ml-engine`
-image with a discovery config.
+its ML Engine, running in standalone discovery mode. Each Deckard release is one engine
+release under Deckard's name: `arthurplatform/deckard:<version>` is that release's
+`arthurplatform/ml-engine` image, unchanged, down to its digest. The GitHub release and the
+chart's `arthur.ai/engine-version` annotation say which engine release it is.
 
 When you want more than an inventory, the [Arthur Platform](https://www.arthur.ai) runs the
 same scans and adds what comes next: triage of every agent found, then policies, monitoring
