@@ -35,6 +35,10 @@ services:
       # So the scan at startup has a user to send as.
       elastic-setup:
         condition: service_completed_successfully
+      # A one-shot nothing depends on fails `up --wait` once it exits, which a fast one
+      # does before Compose checks. Costs Deckard the ~30s Kibana takes to start.
+      kibana-setup:
+        condition: service_completed_successfully
     healthcheck:
       test: wget -qO - http://127.0.0.1:7492/health
       interval: 30s

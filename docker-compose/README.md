@@ -38,7 +38,7 @@ curl -s -u elastic:changeme 'localhost:9200/_query?format=txt' \
 - The events are kept in the `elasticsearch-data` volume. `docker compose down -v` deletes
   them.
 - Elasticsearch and Kibana take about 3.5 GB of memory between them, and a minute or so
-  to start; Deckard waits for Elasticsearch, and `--wait` waits for all of it.
+  to start; Deckard waits for both to be set up, and `--wait` waits for all of it.
 
 ## Scanning this machine
 
