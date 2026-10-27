@@ -13,6 +13,12 @@ on:
         description: Engine release to move to, if not the newest (proposed even if skipped before)
         required: false
 
+# An explicit bash runs as bash -eo pipefail: a step fails when any command in a pipeline
+# does, not only the last.
+defaults:
+  run:
+    shell: bash
+
 permissions:
   contents: write
   pull-requests: write
