@@ -104,7 +104,8 @@ jobs:
       - name: Wait for the scan to reach the receiver
         working-directory: docker-compose
         run: |
-          received() { docker compose logs --no-log-prefix webhook-receiver | grep -q "$1"; }
+          # Not grep -q: stopping at the first match fails the pipeline on the logs' SIGPIPE.
+          received() { docker compose logs --no-log-prefix webhook-receiver | grep "$1" >/dev/null; }
           for _ in $(seq 60); do
             received '^SCAN   this-machine/inventory: ' && break
             sleep 5
