@@ -7,10 +7,10 @@
 [![CI](https://github.com/arthur-ai/arthur-deckard/actions/workflows/ci.yaml/badge.svg)](https://github.com/arthur-ai/arthur-deckard/actions/workflows/ci.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Find the rogue AI agents running across your organization, and flag them in your SIEM.**
+**Scan your endpoints, cloud, and network for shadow Agents and track them in your SIEM.**
 
-Deckard scans the systems you already run (cloud AI platforms, endpoints, network logs and
-your SIEM) for AI agents, and sends every one it finds to Elasticsearch, Splunk or any
+Deckard scans your systems (cloud AI platforms, endpoints, network logs and
+your SIEM) for AI agents, and sends every one it finds to Elasticsearch, Splunk, your SIEM or any
 webhook. It's headless, read-only, and runs entirely in your environment.
 
 ## Quickstart
