@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/deckard-hero.png" alt="Deckard by Arthur: hunt down shadow agents and hand them to your SIEM" width="100%">
+  <img src="docs/assets/deckard-hero.png" alt="Deckard by Arthur banner" width="100%">
 </p>
 
 # Arthur Deckard
