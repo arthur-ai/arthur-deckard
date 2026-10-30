@@ -5,6 +5,9 @@
 docker compose up -d --wait
 ```
 
+On Windows, scan with `powershell -NoProfile -ExecutionPolicy Bypass -File .\scan-local.ps1`
+instead ([On Windows](#on-windows)).
+
 Then open [Kibana](http://localhost:5601/app/discover) and log in as `elastic`, password
 `changeme`.
 
@@ -51,7 +54,7 @@ mounts into Deckard:
 | File | Holds |
 |---|---|
 | `inventory.json` | what the collector found |
-| `machine.json` | which machine it was: its hardware UUID on macOS, or `/etc/machine-id` on Linux, plus its hostname and OS version |
+| `machine.json` | which machine it was: its hardware UUID on macOS, `/etc/machine-id` on Linux, or `MachineGuid` on Windows, plus its hostname and OS version |
 
 - It needs [osquery](https://osquery.io/downloads) and runs on macOS and Linux.
 - It doesn't need root. Run as you, it sees what you can read, which on a laptop is where
@@ -59,8 +62,35 @@ mounts into Deckard:
 - It downloads the collector pinned to one arthur-engine commit, and won't run it if the
   download doesn't match the pinned hash.
 - Deckard re-reads `local-scan/` every interval (1 hour in the shipped config), but the
-  folder only changes when you run `./scan-local.sh` again. A scan more than 7 days old
-  is not published.
+  folder only changes when you scan again. A scan more than 7 days old is not published.
+
+### On Windows
+
+`scan-local.ps1` does the same from PowerShell. Arthur's collector doesn't run on Windows,
+so it runs [ai-detection-spec](https://github.com/arthur-ai/ai-detection-spec)'s Windows
+query through osquery itself, pinned and checked the same way, and writes the same two
+files:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scan-local.ps1
+```
+
+- It needs [osquery](https://osquery.io/downloads) 5.17.0 or later: the Windows installer
+  (`.msi`). The installer also starts osquery's own background service, `osqueryd`, which
+  Deckard doesn't use; `Stop-Service osqueryd; Set-Service osqueryd -StartupType Disabled`
+  from an administrator PowerShell turns it off.
+- It doesn't need an administrator. Run as you, it sees what you can read. Windows lists
+  the apps a user installed for themselves only while that user is signed in, so it finds
+  yours, not those of other people on the machine who are signed out.
+- `-ExecutionPolicy Bypass` lets Windows run this one script file this once, since by
+  default it runs none. Nothing is changed for other scripts.
+- If you downloaded the repository as a ZIP rather than cloning it, Windows marks the file
+  as downloaded; run `Unblock-File .\scan-local.ps1` first.
+- A machine whose IT allows signed scripts only (an `AllSigned` execution policy set by
+  Group Policy) won't run it, and `-ExecutionPolicy Bypass` can't override that. Where
+  AppLocker or Windows Defender Application Control restricts unsigned scripts to
+  PowerShell's ConstrainedLanguage mode, it runs unchanged: it uses only what that mode
+  allows.
 
 ## Adding sources
 
@@ -90,13 +120,14 @@ when one fails, saying why in `outcome.error`. Deckard logs the same outcome:
 
 | The outcome says | Do this |
 |---|---|
-| `… machine.json does not exist` | Run `./scan-local.sh`. Deckard reads its output; it can't scan the host itself |
-| a scan too old to publish | Run `./scan-local.sh` again |
+| `… machine.json does not exist` | Run `./scan-local.sh` (`scan-local.ps1` on Windows). Deckard reads its output; it can't scan the host itself |
+| a scan too old to publish | Run `./scan-local.sh` (`scan-local.ps1` on Windows) again |
 | nothing in Discover at all | `docker compose logs deckard`: a config Deckard can't use stops it at startup, naming the problem, and a destination that refuses events is logged there too |
 | `docker compose up` fails at `elastic-setup` | `docker compose logs elastic-setup` says why |
 
 `scan-local.sh` says so if osquery is missing, and prints the collector's own output if the
-scan fails.
+scan fails. `scan-local.ps1` does the same with osquery's output, and also says if osquery
+is older than the Windows query needs.
 
 ## Notes
 
