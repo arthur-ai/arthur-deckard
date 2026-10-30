@@ -26,9 +26,20 @@ cd arthur-deckard/docker-compose
 docker compose up -d --wait
 ```
 
-`scan-local.sh` lists what's installed on this machine using the osquery queries from
-[ai-detection-spec](https://github.com/arthur-ai/ai-detection-spec), our open format and
-catalog for finding AI agents on a machine. It changes nothing and doesn't need root.
+On Windows, you need Docker Desktop and osquery 5.17.0 or later (its `.msi` installer).
+From PowerShell:
+
+```powershell
+git clone https://github.com/arthur-ai/arthur-deckard.git
+cd arthur-deckard\docker-compose
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scan-local.ps1
+docker compose up -d --wait
+```
+
+`scan-local.sh` (`scan-local.ps1` on Windows) lists what's installed on this machine using
+the osquery queries from [ai-detection-spec](https://github.com/arthur-ai/ai-detection-spec),
+our open format and catalog for finding AI agents on a machine. It changes nothing and
+doesn't need root or an administrator.
 Deckard matches what it finds against that catalog and sends each agent to an
 Elasticsearch running beside it. Open [Kibana](http://localhost:5601/app/discover), log in
 as `elastic` with password `changeme`, and Discover lists them. Or ask Elasticsearch from
@@ -75,7 +86,7 @@ Each [release](https://github.com/arthur-ai/arthur-deckard/releases) publishes t
 | Class | Sources |
 |---|---|
 | Cloud AI platforms | Vertex AI Agent Engine, AWS Bedrock and AgentCore |
-| Endpoints and servers | Jamf Pro, Google Compute Engine, AWS EC2, this machine (`scan-local.sh`) |
+| Endpoints and servers | Jamf Pro, Google Compute Engine, AWS EC2, this machine (`scan-local.sh`, or `scan-local.ps1` on Windows) |
 | Network and gateway logs | AWS CloudWatch Logs, Google Cloud Logging |
 | Security telemetry | Splunk Enterprise, Elastic Security |
 
